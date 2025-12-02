@@ -1,11 +1,7 @@
-import { View, Text } from 'react-native';
+import LoginScreen from '../features/auth/LoginScreen';
 
 const index = () => {
-    return (
-        <View>
-            <Text>index</Text>
-        </View>
-    )
-}
+    return <LoginScreen />;
+};
 
 export default index;
