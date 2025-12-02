@@ -1,15 +1,23 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { useRouter } from 'expo-router';
-import { sampleData, Intervention } from '../../lib/data/interventions';
+import axios from 'axios';
 
-type Props = {
-	interventions?: Intervention[];
+import { useRouter } from 'expo-router';
+
+// Local Intervention type (previously in ../../lib/data/interventions)
+export type Intervention = {
+	id: string;
+	date: string;
+	status: string;
+	description: string;
+	address: string;
+	imageUrl?: string;
 };
 
+// No props: component fetches interventions from the API
 function formatDate(iso: string) {
 	try {
 		return new Date(iso).toLocaleString();
@@ -26,10 +34,17 @@ function statusStyle(status: string) {
 	return styles.statusUnknown;
 }
 
-export default function InterventionList({ interventions = sampleData }: Props) {
+// Change this to your machine IP reachable from your phone (or set via env/config).
+const API_BASE = 'http://10.102.251.238:5000'; // example: replace with your computer IP on the LAN
+
+export default function InterventionList() {
 	const router = useRouter();
 	const [query, setQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState('Tous');
+
+	const [interventionsState, setInterventionsState] = useState<Intervention[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const STATUSES = ['Tous', 'Terminé', 'En cours', 'Planifié'];
 	const [startDate, setStartDate] = useState<Date | null>(null);
@@ -37,7 +52,7 @@ export default function InterventionList({ interventions = sampleData }: Props) 
 	const [showStartPicker, setShowStartPicker] = useState(false);
 	const [showEndPicker, setShowEndPicker] = useState(false);
 
-	const filtered = interventions.filter((i) => {
+	const filtered = interventionsState.filter((i) => {
 		const matchesQuery = query
 			? i.description.toLowerCase().includes(query.toLowerCase())
 			: true;
@@ -61,8 +76,43 @@ export default function InterventionList({ interventions = sampleData }: Props) 
 		return matchesQuery && matchesStatus && matchesDate;
 	});
 
+	useEffect(() => {
+		let mounted = true;
+		async function load() {
+			setLoading(true);
+			setError(null);
+			try {
+				const res = await axios.get(`${API_BASE}/interventions`);
+				// API returns { data: [...] } according to your example
+				const items = res.data && res.data.data ? res.data.data : res.data;
+				const mapped: Intervention[] = items.map((it: any) => ({
+					id: String(it.id),
+					date: it.date_intervention || it.date || it.createdAt || '',
+					status: it.status || '',
+					description: it.description || '',
+					address: it.adresse || it.address || '',
+					imageUrl: it.photo || it.imageUrl || undefined,
+				}));
+				if (mounted) setInterventionsState(mapped);
+			} catch (err: any) {
+				setError(err.message || 'Erreur de connexion');
+			} finally {
+				if (mounted) setLoading(false);
+			}
+		}
+		load();
+		return () => { mounted = false };
+	}, []);
+
 	const renderItem = ({ item }: { item: Intervention }) => (
-		<TouchableOpacity onPress={() => router.push(`/intervention/${item.id}`)}>
+		<TouchableOpacity onPress={() => router.push({ pathname: `/intervention/[id]`, params: {
+			id: item.id,
+			date: item.date,
+			status: item.status,
+			description: item.description,
+			address: item.address,
+			imageUrl: item.imageUrl,
+		} })}>
 			<View style={styles.card}>
 				<View style={styles.header}>
 					<Text style={styles.date}>{formatDate(item.date)}</Text>
@@ -73,6 +123,21 @@ export default function InterventionList({ interventions = sampleData }: Props) 
 			</View>
 		</TouchableOpacity>
 	);
+
+	if (loading) {
+		return (
+			<View style={styles.container}>
+				<Text style={styles.pageTitle}>Chargement...</Text>
+			</View>
+		);
+	}
+	if (error) {
+		return (
+			<View style={styles.container}>
+				<Text style={[styles.pageTitle, { color: '#ef4444' }]}>{error}</Text>
+			</View>
+		);
+	}
 
 	return (
 		<View style={styles.container}>

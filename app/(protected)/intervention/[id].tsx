@@ -15,12 +15,27 @@ import {
   Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { sampleData } from '../../../lib/data/interventions';
 
 export default function InterventionDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{
+    id?: string;
+    date?: string;
+    status?: string;
+    description?: string;
+    address?: string;
+    imageUrl?: string;
+  }>();
   const router = useRouter();
-  const item = sampleData.find((i) => i.id === id);
+
+  // Build the item from params passed by the list screen.
+  const item = params && params.id ? {
+    id: String(params.id),
+    date: params.date ?? '',
+    status: params.status ?? '',
+    description: params.description ?? '',
+    address: params.address ?? '',
+    imageUrl: params.imageUrl,
+  } : undefined;
   const [comment, setComment] = useState('');
   const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [status, setStatus] = useState<string>(item?.status ?? '');
