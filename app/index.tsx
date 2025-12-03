@@ -1,20 +1,7 @@
-import React from 'react';
-import { View, Button, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import LoginScreen from '../features/auth/screens/LoginScreen';
 
-export default function Index() {
-    const router = useRouter();
+const index = () => {
+    return <LoginScreen />;
+};
 
-    return (
-        <View style={styles.container}>
-            <Button title="Voir les interventions" onPress={() => router.push('/interventionList')} />
-        </View>
-    );
-}
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-});
+export const index;
