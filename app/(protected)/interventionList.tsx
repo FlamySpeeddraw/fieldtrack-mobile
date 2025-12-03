@@ -4,10 +4,10 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Platform
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import axios from 'axios';
+import { getAllImageMappings } from '../../lib/localImages';
 
 import { useRouter } from 'expo-router';
 
-// Local Intervention type (previously in ../../lib/data/interventions)
 export type Intervention = {
 	id: string;
 	date: string;
@@ -15,9 +15,11 @@ export type Intervention = {
 	description: string;
 	address: string;
 	imageUrl?: string;
+	images?: string[];
+	commentaire?: string;
 };
 
-// No props: component fetches interventions from the API
+// Convertit une date ISO en chaîne lisible pour l'affichage
 function formatDate(iso: string) {
 	try {
 		return new Date(iso).toLocaleString();
@@ -26,17 +28,21 @@ function formatDate(iso: string) {
 	}
 }
 
+// Retourne un style CSS simple selon le statut (pour badge)
 function statusStyle(status: string) {
 	const s = status.toLowerCase();
-	if (s.includes('term')) return styles.statusDone; // Terminé -> green
-	if (s.includes('cours') || s.includes('progress') || s.includes('in_progress')) return styles.statusInProgress; // En cours -> red
-	if (s.includes('plan')) return styles.statusPlanned; // Planifié -> orange
+	if (s.includes('term')) return styles.statusDone; 
+	if (s.includes('cours') || s.includes('progress') || s.includes('in_progress')) return styles.statusInProgress;
+	if (s.includes('plan')) return styles.statusPlanned; 
 	return styles.statusUnknown;
 }
 
-// Change this to your machine IP reachable from your phone (or set via env/config).
-const API_BASE = 'http://10.102.251.238:5000'; // example: replace with your computer IP on the LAN
+import { API_BASE } from '../../lib/config';
 
+// Écran principal listant les interventions.
+// - Récupère les données depuis l'API
+// - Fusionne les images locales (si l'utilisateur en a ajoutées)
+// - Permet filtrer, rechercher, et naviguer vers le détail
 export default function InterventionList() {
 	const router = useRouter();
 	const [query, setQuery] = useState('');
@@ -60,9 +66,7 @@ export default function InterventionList() {
 			? i.status === statusFilter
 			: true;
 
-		// date filtering: parse YYYY-MM-DD or ISO-like strings
 		const itemDate = new Date(i.date);
-		// normalize start to 00:00 and end to 23:59:59 for inclusive day filtering
 		const start = startDate
 			? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0)
 			: null;
@@ -76,34 +80,50 @@ export default function InterventionList() {
 		return matchesQuery && matchesStatus && matchesDate;
 	});
 
-	useEffect(() => {
+	// Charge la liste depuis l'API et merge les mappings d'images locales
+	const load = async (showLoading = true) => {
 		let mounted = true;
-		async function load() {
-			setLoading(true);
+		try {
+			if (showLoading) setLoading(true);
 			setError(null);
+			const res = await axios.get(`${API_BASE}/interventions`);
+			const items = res.data && res.data.data ? res.data.data : res.data;
+			const mapped: Intervention[] = items.map((it: any) => ({
+				id: String(it.id),
+				date: it.date_intervention || it.date || it.createdAt || '',
+				status: it.status || '',
+				description: it.description || '',
+				address: it.adresse || it.address || '',
+				imageUrl: it.photo || it.imageUrl || undefined,
+				images: it.images || (it.photo ? [it.photo] : []) ,
+				commentaire: it.commentaire || it.comment || null,
+			}));
 			try {
-				const res = await axios.get(`${API_BASE}/interventions`);
-				// API returns { data: [...] } according to your example
-				const items = res.data && res.data.data ? res.data.data : res.data;
-				const mapped: Intervention[] = items.map((it: any) => ({
-					id: String(it.id),
-					date: it.date_intervention || it.date || it.createdAt || '',
-					status: it.status || '',
-					description: it.description || '',
-					address: it.adresse || it.address || '',
-					imageUrl: it.photo || it.imageUrl || undefined,
-				}));
+				const mappings = await getAllImageMappings();
+				const merged = mapped.map((m) => ({ ...m, images: mappings[m.id] ?? m.images ?? (m.imageUrl ? [m.imageUrl] : []) }));
+				if (mounted) setInterventionsState(merged);
+			} catch (e) {
 				if (mounted) setInterventionsState(mapped);
-			} catch (err: any) {
-				setError(err.message || 'Erreur de connexion');
-			} finally {
-				if (mounted) setLoading(false);
 			}
+		} catch (err: any) {
+			setError(err.message || 'Erreur de connexion');
+		} finally {
+			if (showLoading) setLoading(false);
 		}
+	};
+
+	useEffect(() => {
 		load();
-		return () => { mounted = false };
 	}, []);
 
+	const [refreshing, setRefreshing] = useState(false);
+	const onRefresh = async () => {
+		setRefreshing(true);
+		await load(false);
+		setRefreshing(false);
+	};
+
+	// Rend une ligne/carte d'intervention cliquable et navigue vers l'écran détail
 	const renderItem = ({ item }: { item: Intervention }) => (
 		<TouchableOpacity onPress={() => router.push({ pathname: `/intervention/[id]`, params: {
 			id: item.id,
@@ -112,6 +132,7 @@ export default function InterventionList() {
 			description: item.description,
 			address: item.address,
 			imageUrl: item.imageUrl,
+			commentaire: item.commentaire ?? '',
 		} })}>
 			<View style={styles.card}>
 				<View style={styles.header}>
@@ -141,9 +162,10 @@ export default function InterventionList() {
 
 	return (
 		<View style={styles.container}>
-				
-				<Text style={styles.pageTitle}>Interventions</Text>
-				<View style={styles.statusFilterContainer}>
+			{/* Titre de la page */}
+			<Text style={styles.pageTitle}>Interventions</Text>
+			{/* Boutons de filtre par statut */}
+			<View style={styles.statusFilterContainer}>
 					{STATUSES.map((s) => (
 						<TouchableOpacity
 							key={s}
@@ -158,6 +180,7 @@ export default function InterventionList() {
 					))}
 				</View>
 
+				{/* Sélecteurs de date (début / fin) */}
 				<View style={styles.dateRow}>
 					<View style={styles.dateButtonWrapper}>
 						<TouchableOpacity style={styles.dateButton} onPress={() => setShowStartPicker(true)}>
@@ -181,6 +204,7 @@ export default function InterventionList() {
 					</View>
 				</View>
 
+				{/* Sélecteur natif pour la date de début (s'affiche conditionnellement) */}
 				{showStartPicker && (
 					<DateTimePicker
 						value={startDate ?? new Date()}
@@ -192,6 +216,7 @@ export default function InterventionList() {
 						}}
 					/>
 				)}
+				{/* Sélecteur natif pour la date de fin (s'affiche conditionnellement) */}
 				{showEndPicker && (
 					<DateTimePicker
 						value={endDate ?? new Date()}
@@ -205,20 +230,23 @@ export default function InterventionList() {
 				)}
 
 
-
-				<TextInput
+			{/* Champ de recherche par description */}
+			<TextInput
 					value={query}
 					onChangeText={setQuery}
 					placeholder="Rechercher par description..."
 					style={styles.searchInput}
 					clearButtonMode="while-editing"
 				/>
-				<FlatList
-				data={filtered}
-				keyExtractor={(i) => i.id}
-				renderItem={renderItem}
-				ItemSeparatorComponent={() => <View style={styles.separator} />}
-				ListEmptyComponent={() => <Text style={styles.empty}>Aucune intervention</Text>}
+			{/* Liste scrollable des interventions */}
+			<FlatList
+					data={filtered}
+					keyExtractor={(i) => i.id}
+					renderItem={renderItem}
+					ItemSeparatorComponent={() => <View style={styles.separator} />}
+					ListEmptyComponent={() => <Text style={styles.empty}>Aucune intervention</Text>}
+					refreshing={refreshing}
+					onRefresh={onRefresh}
 			/>
 		</View>
 	);
@@ -228,6 +256,7 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		marginTop: 12,
+		marginBottom: 48,
 		padding: 12,
 		backgroundColor: '#fff',
 	},
