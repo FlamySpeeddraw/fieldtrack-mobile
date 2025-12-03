@@ -2,6 +2,7 @@ import axios from "axios";
 import { ErrorApiResponse } from "../../../types/general.types";
 import { LoginResponse } from "../types/api.types";
 import { API_URL } from "../../../constants/general.constants";
+import * as SecureStore from 'expo-secure-store';
 
 export const login = async (
     mail: string,
@@ -9,7 +10,9 @@ export const login = async (
 ): Promise<LoginResponse | ErrorApiResponse> => {
     try {
         const response = await axios.post(`${API_URL}/auth/login`, { mail, mdp, appType: "mobile" });
-        axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`
+        axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
+        SecureStore.setItem("refres", response.data.newRefreshToken);
+        
 
         return {
             success: true,
