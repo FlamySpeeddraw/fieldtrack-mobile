@@ -4,4 +4,4 @@ const index = () => {
     return <LoginScreen />;
 };
 
-export default index;
+export const index;
