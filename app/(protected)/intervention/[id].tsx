@@ -42,7 +42,10 @@ export default function InterventionDetail() {
     imageUrl: params.imageUrl,
     commentaire: params.commentaire ?? '',
   } : undefined;
-  const [comment, setComment] = useState(item?.commentaire ?? '');
+  // `comment` contient le nouveau commentaire à ajouter (vide par défaut)
+  const [comment, setComment] = useState('');
+  // Liste des commentaires séparés par saut de ligne (affichage)
+  const [commentsList, setCommentsList] = useState<string[]>(item?.commentaire ? item.commentaire.split('\n').filter(Boolean) : []);
   const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [status, setStatus] = useState<string>(item?.status ?? '');
   const statuses: string[] = ["Terminé", "En cours", "Planifié"];
@@ -88,14 +91,21 @@ export default function InterventionDetail() {
         }
       }
 
-      const body = {
-        status,
-        commentaire: comment,
-      };
+      // Prépare le champ `commentaire` en ajoutant le nouveau commentaire
+      const trimmed = comment.trim();
+      const newComments = trimmed ? [...commentsList, trimmed] : commentsList;
+      const body: any = { status };
+      // n'envoyer que la concaténation (même si vide) pour garder le format texte en BDD
+      body.commentaire = newComments.join('\n');
       await axios.put(`${API_BASE}/interventions/${item.id}`, body, {
         headers: { 'Content-Type': 'application/json' },
       });
       Alert.alert('Succès', 'Modification enregistrée', [{ text: 'OK' }]);
+      // mettre à jour l'affichage local des commentaires et réinitialiser le champ d'ajout
+      if (trimmed) {
+        setCommentsList(newComments);
+        setComment('');
+      }
       setEditMode(false);
       setIsEditingStatus(false);
     } catch (err: any) {
@@ -279,11 +289,19 @@ export default function InterventionDetail() {
       )}
 
       {/* Zone de commentaire (modifiable en mode édition) */}
+      {/* Affiche les commentaires existants (un par ligne) */}
       <Text style={styles.label}>Commentaire</Text>
+      {(Array.isArray(commentsList) ? commentsList : []).map((c, idx) => (
+        <View key={`${idx}_${c}`} style={styles.commentItem}>
+          <Text>{c}</Text>
+        </View>
+      ))}
+
+      {/* Champ pour ajouter un nouveau commentaire (vide par défaut) */}
       <TextInput
         value={comment}
         onChangeText={setComment}
-        placeholder={editMode ? "Ajouter un commentaire..." : "Cliquer sur Modifier pour éditer"}
+        placeholder={editMode ? "Ajouter un commentaire..." : "Cliquer sur Modifier pour ajouter"}
         style={[styles.input, !editMode ? styles.inputDisabled : null]}
         multiline
         editable={editMode}
@@ -441,6 +459,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     minHeight: 80,
     textAlignVertical: 'top',
-    marginBottom: 12,
+    marginBottom: 48,
+  },
+  commentItem: {
+    backgroundColor: '#f3f4f6',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 6,
   },
 });

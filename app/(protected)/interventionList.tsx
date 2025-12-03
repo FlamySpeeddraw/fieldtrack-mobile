@@ -7,6 +7,7 @@ import axios from 'axios';
 import { getAllImageMappings } from '../../lib/localImages';
 
 import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 
 export type Intervention = {
 	id: string;
@@ -38,6 +39,9 @@ function statusStyle(status: string) {
 }
 
 import { API_BASE } from '../../lib/config';
+
+// Mock de l'utilisateur courant (remplacer par l'ID réel depuis l'auth)
+const CURRENT_USER_ID = '1';
 
 // Écran principal listant les interventions.
 // - Récupère les données depuis l'API
@@ -86,7 +90,8 @@ export default function InterventionList() {
 		try {
 			if (showLoading) setLoading(true);
 			setError(null);
-			const res = await axios.get(`${API_BASE}/interventions`);
+			// Utilise la route spécifique à l'utilisateur
+			const res = await axios.get(`${API_BASE}/interventions/user/${CURRENT_USER_ID}`);
 			const items = res.data && res.data.data ? res.data.data : res.data;
 			const mapped: Intervention[] = items.map((it: any) => ({
 				id: String(it.id),
@@ -115,6 +120,14 @@ export default function InterventionList() {
 	useEffect(() => {
 		load();
 	}, []);
+
+	// Rafraîchit la liste lorsque l'écran redevient actif (retour depuis l'écran détail)
+	const isFocused = useIsFocused();
+	useEffect(() => {
+		if (isFocused) {
+			load(false);
+		}
+	}, [isFocused]);
 
 	const [refreshing, setRefreshing] = useState(false);
 	const onRefresh = async () => {
