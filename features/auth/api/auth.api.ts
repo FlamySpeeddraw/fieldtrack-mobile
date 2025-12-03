@@ -1,7 +1,7 @@
 import axios from "axios";
-import { ErrorApiResponse } from "../../types/general.types";
+import { ErrorApiResponse } from "../../../types/general.types";
 import { LoginResponse } from "../types/api.types";
-import { API_URL } from "../../constants/general.constants";
+import { API_URL } from "../../../constants/general.constants";
 
 export const login = async (
     mail: string,

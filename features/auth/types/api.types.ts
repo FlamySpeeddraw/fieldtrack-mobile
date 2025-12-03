@@ -1,4 +1,4 @@
-import { ApiResponse } from "../../types/general.types";
+import { ApiResponse } from "../../../types/general.types";
 
 export type tokens = {
     accessToken: string;

@@ -1,4 +1,4 @@
-import LoginScreen from '../features/auth/LoginScreen';
+import LoginScreen from '../features/auth/screens/LoginScreen';
 
 const index = () => {
     return <LoginScreen />;
