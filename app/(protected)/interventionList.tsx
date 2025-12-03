@@ -7,6 +7,7 @@ import { getAllImageMappings } from '../../lib/localImages';
 
 import { useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
+import { API_URL } from '@/constants/general.constants';
 
 export type Intervention = {
 	id: string;
@@ -37,10 +38,8 @@ function statusStyle(status: string) {
 	return styles.statusUnknown;
 }
 
-import { API_BASE } from '../../lib/config';
-
 // Mock de l'utilisateur courant (remplacer par l'ID réel depuis l'auth)
-const CURRENT_USER_ID = '1';
+const CURRENT_USER_ID = '8';
 
 // Écran principal listant les interventions.
 // - Récupère les données depuis l'API
@@ -90,7 +89,7 @@ export default function InterventionList() {
 			if (showLoading) setLoading(true);
 			setError(null);
 			// Utilise la route spécifique à l'utilisateur
-			const res = await axios.get(`${API_BASE}/interventions/user/${CURRENT_USER_ID}`);
+			const res = await axios.get(`${API_URL}/interventions/user/${CURRENT_USER_ID}`);
 			const items = res.data && res.data.data ? res.data.data : res.data;
 			const mapped: Intervention[] = items.map((it: any) => ({
 				id: String(it.id),

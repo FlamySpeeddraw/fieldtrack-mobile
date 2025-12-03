@@ -51,5 +51,6 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     input: {
+        flex: 1
     }
 });

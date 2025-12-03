@@ -8,7 +8,8 @@ export const login = async (
     mdp: string
 ): Promise<LoginResponse | ErrorApiResponse> => {
     try {
-        const response = await axios.post(`${API_URL}/auth/login`, { mail, mdp });
+        const response = await axios.post(`${API_URL}/auth/login`, { mail, mdp, appType: "mobile" });
+        axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`
 
         return {
             success: true,
