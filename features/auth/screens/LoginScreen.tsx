@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -11,23 +11,33 @@ const LoginScreen = () => {
     const [mail, setMail] = useState<string>("");
     const [mdp, setMdp] = useState<string>("");
     const [error, setError] = useState<string>("");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const router = useRouter();
 
     const handlePress = async () => {
+        if (isLoading) {
+            return;
+        }
+
+        setIsLoading(true);
         if (!mail || !mdp) {
+            setIsLoading(false);
             return setError("Il faut remplir tous les champs");
         }
 
         if (!mail.match(/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/)) {
+            setIsLoading(false);
             return setError("Il faut remplir tous les champs");
         }
 
         const response = await login(mail, mdp);
         if (!response.success) {
+            setIsLoading(false);
             return setError("Mail ou mot de passe invalide");
         }
 
+        setIsLoading(false);
         router.replace("/(protected)/interventionList");
     }
 
@@ -59,7 +69,11 @@ const LoginScreen = () => {
                 />
                 <Text style={styles.error}>{error}</Text>
                 <Pressable style={styles.button} onPress={() => handlePress()}>
-                    <Text style={styles.buttonText}>Se connecter</Text>
+                    {isLoading ?
+                        <ActivityIndicator color={"white"} />
+                        :
+                        <Text style={styles.buttonText}>Se connecter</Text>
+                    }
                 </Pressable>
             </View>
         </SafeAreaView>
