@@ -61,7 +61,7 @@ const InterventionDetailsScreen = () => {
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
             <SafeAreaView style={styles.container}>
-                <ScrollView contentContainerStyle={{ flexGrow: 1, width: '80%' }}>
+                <ScrollView contentContainerStyle={{ flexGrow: 1, width: '80%' }} showsVerticalScrollIndicator={false}>
                     <BackButton />
                     <HeaderDetails
                         editMode={editMode}
