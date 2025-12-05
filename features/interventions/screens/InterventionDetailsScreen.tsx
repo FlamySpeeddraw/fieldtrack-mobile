@@ -12,6 +12,7 @@ import { putIntervention } from '../api/intervention.api';
 import TextDisplayDetails from '../components/TextDisplayDetails';
 import AddImage from '../components/AddImage';
 import CarousselImage from '../components/CarousselImage';
+import BackButton from '@/components/BackButton';
 
 const InterventionDetailsScreen = () => {
     const [intervention, setIntervention] = useState<Intervention>(JSON.parse(useLocalSearchParams().intervention as string));
@@ -61,6 +62,7 @@ const InterventionDetailsScreen = () => {
         >
             <SafeAreaView style={styles.container}>
                 <ScrollView contentContainerStyle={{ flexGrow: 1, width: '80%' }}>
+                    <BackButton />
                     <HeaderDetails
                         editMode={editMode}
                         setEditMode={setEditMode}
