@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getListInterventions } from "../api/intervention.api";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Intervention } from "../types/api.types";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styles } from "../styles/InterventionsListScreen.styles";
@@ -35,7 +35,7 @@ const InterventionListScreen = () => {
         setFilteredInterventions(interventionCopy);
     }, [interventions, filter, query]);
 
-    useEffect(() => {
+    useFocusEffect(useCallback(() => {
         const fetchIntervention = async () => {
             const userId = SecureStore.getItem("userId");
             if (!userId) {
@@ -51,7 +51,7 @@ const InterventionListScreen = () => {
         }
 
         fetchIntervention();
-    }, []);
+    }, []));
 
     const onRefresh = async () => {
         setIsloading(true);
