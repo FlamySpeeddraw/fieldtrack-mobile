@@ -11,7 +11,8 @@ export const login = async (
     try {
         const response = await axios.post(`${API_URL}/auth/login`, { mail, mdp, appType: "mobile" });
         axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
-        SecureStore.setItem("refres", response.data.newRefreshToken);
+        SecureStore.setItem("refresh", response.data.newRefreshToken);
+        SecureStore.setItem("userId", response.data.userId.toString());
         
 
         return {
